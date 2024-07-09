@@ -15,54 +15,43 @@ import { Button } from "./ui/button";
 const data = sampleData;
 
 export default function MainGroceryList() {
-    const [displayAmmount, setDisplayAmmount] = useState(10);
+    const [displayAmount, setDisplayAmount] = useState(10);
     const [total, setTotal] = useState(0);
     const [items, setItems] = useState<JSX.Element[]>([]);
+
     useEffect(() => {
-        let totalAmmount = 0;
-        for (let i = 0; i < data.length; i++) {
-            if (data[i].price !== null) totalAmmount += data[i].price as number;
-        }
-        setTotal(totalAmmount);
+        let totalAmount = 0;
+        data.forEach((item) => {
+            if (item.price) totalAmount += item.price;
+        });
+        setTotal(totalAmount);
     }, []);
+
     useEffect(() => {
-        const newItems = [];
-        for (let i = 0; i < displayAmmount && i< data.length; i++) {
-            
-            newItems.push(
-                <TableRow key={data[i].id}>
-                    <TableCell className="font-medium">
-                        {data[i].name}
-                    </TableCell>
-                    <TableCell className="text-center">
-                        {data[i].shop}
-                    </TableCell>
-                    <TableCell className="text-center">
-                        {data[i].price}
-                    </TableCell>
-                </TableRow>
-            );
-        }
+        const newItems = data.slice(0, displayAmount).map((item) => (
+            <TableRow key={item.id}>
+                <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell className="text-center">{item.shop}</TableCell>
+                <TableCell className="text-center">{item.price}</TableCell>
+            </TableRow>
+        ));
         setItems(newItems);
-    }, [displayAmmount]);
+    }, [displayAmount]);
 
     return (
-        <div className="">
+        <div className="max-h-screen ">
             <Table>
-                <TableCaption>A list of your current groceries.</TableCaption>
+                <TableCaption>A list of your current groceries</TableCaption>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="">Name</TableHead>
+                        <TableHead>Name</TableHead>
                         <TableHead className="text-center">Store</TableHead>
-                        <TableHead className="text-center">Amount</TableHead>
+                        <TableHead className="text-center">Price</TableHead>
                     </TableRow>
                 </TableHeader>
-                <TableBody>
-                    {items}
-                    <TableCell className="text-center" colSpan={4}>
-                        <Button onClick={() => setDisplayAmmount(i=> i+10)} className="bg-slate-700 h-8">...</Button>
-                    </TableCell>
-                </TableBody>
+                    <TableBody className="max-h-64 overflow-y-scroll">
+                        {items}
+                    </TableBody>
                 <TableFooter>
                     <TableRow>
                         <TableCell colSpan={2}>Total</TableCell>
@@ -70,6 +59,12 @@ export default function MainGroceryList() {
                     </TableRow>
                 </TableFooter>
             </Table>
+            <Button
+                onClick={() => setDisplayAmount((prev) => prev + 10)}
+                className="bg-slate-700 h-8 mt-2"
+            >
+                Load More
+            </Button>
         </div>
     );
 }
