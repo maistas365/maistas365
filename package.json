@@ -14,5 +14,9 @@
   },
   "workspaces": [
     "apps/*"
-  ]
+  ],
+  "dependencies": {
+    "@nestjs/config": "^3.2.3",
+    "config": "^3.3.12"
+  }
 }
