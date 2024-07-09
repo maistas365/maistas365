@@ -1,10 +1,14 @@
 import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
 
 function App() {
     return (
-        <div className="bg-red-500">
-            <div>WTF?</div>
-            <Button>Labas</Button>
+        <div className="flex flex-col justify-center h-screen items-center">
+            <div className="my-4">Pick a grocery</div>
+            <div className="flex flex-row ml-2">
+                <Input className="w-32 mx-2"/>
+                <Button>Add</Button>
+            </div>
         </div>
     );
 }
