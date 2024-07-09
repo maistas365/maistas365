@@ -5,7 +5,7 @@ function App() {
     
 
     return (
-        <div className="flex flex-col justify-center h-screen items-center">
+        <div className="flex flex-col justify-center items-center p-10">
             <MainGroceryList />
         </div>
     );
