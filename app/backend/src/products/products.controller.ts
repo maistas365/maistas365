@@ -9,4 +9,9 @@ export class ProductsController {
     getAllProducts(){
         return this.ProductsService.getAllProducts();
     }
+
+    @Get('getallprices')
+    getAllPrices(){
+        return this.ProductsService.getAllPrices();
+    }
 }

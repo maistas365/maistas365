@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { all } from 'axios';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -12,5 +11,16 @@ export class ProductsService {
         const allProducts = await this.prisma.product.findMany()
         return allProducts;
     }
+
+    async getAllPrices(){
+        const allPrices = await this.prisma.product.findMany({
+            select:{
+                price: true,
+                name: true
+            }
+        })
+        return allPrices;
+    }
+
 
 }
