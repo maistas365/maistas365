@@ -6,17 +6,13 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "api-prod": "node apps/api/dist/main"
+    "api-prod": "node app/backend/dist/main"
   },
   "author": "Maistas365",
   "devDependencies": {
     "turbo": "^1.7.4"
   },
   "workspaces": [
-    "apps/*"
-  ],
-  "dependencies": {
-    "@nestjs/config": "^3.2.3",
-    "config": "^3.3.12"
-  }
+    "app/*"
+  ]
 }
