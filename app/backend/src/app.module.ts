@@ -6,7 +6,8 @@ import { ConfigModule } from '@nestjs/config';
 
 
 @Module({
-  imports: [AuthModule, 
+  imports: [
+    AuthModule, 
     ProductsModule,
     PrismaModule,
     ConfigModule.forRoot({ isGlobal: true })]
