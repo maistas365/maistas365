@@ -14,33 +14,34 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User{
-  id Int @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Product {
+  id            String   @id @default(uuid())
+  updatedAt     DateTime @updatedAt
+  productShopId String
+  name          String
+  priceId       String?  @unique
+  price         Price?   @relation("currentPrice", fields: [priceId], references: [id])
+  quantity      Float?
+  unit          String
+  shopName      String
+  url           String?  @unique
+  image         String?
+  available     Boolean
+  categoryId    String?
+  priceHistory  Price[]  @relation("priceHistory")
 
-  email String @unique
-  hash String
-
-  firstName String?
-  lastName String?
+  @@unique([shopName, productShopId])
 }
 
-model Product{
-  id Int @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  name String
-  price String
-  pricePer String
-  shopName String
-  discount String?
-  discountStart DateTime?
-  discountEnd DateTime?
-  url String @unique
-  image String
-  available Boolean
-  categoryId Int
+model Price {
+  id              String    @id @default(uuid())
+  productId       String?
+  product         Product?  @relation("priceHistory", fields: [productId], references: [id])
+  currentProduct  Product?  @relation("currentPrice")
+  date            DateTime  @updatedAt
+  price           Float
+  pricePer        Float
+  discountPercent String?
+  discountStart   DateTime?
+  discountEnd     DateTime?
 }
-
