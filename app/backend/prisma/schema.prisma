@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,33 +8,34 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User{
-  id Int @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Product {
+  id            String   @id @default(uuid())
+  updatedAt     DateTime @updatedAt
+  name          String
+  shopName      String
+  url           String?  @unique
+  image         String?
+  available     Boolean
+  categoryId    String?
+  quantity      Float?
+  priceId       String?  @unique
+  unit          String
+  productShopId String
+  priceHistory  Price[]  @relation("priceHistory")
+  price         Price?   @relation("currentPrice", fields: [priceId], references: [id])
 
-  email String @unique
-  hash String
-
-  firstName String?
-  lastName String?
+  @@unique([shopName, productShopId])
 }
 
-model Product{
-  id Int @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  name String
-  price String
-  pricePer String
-  shopName String
-  discount String?
-  discountStart DateTime?
-  discountEnd DateTime?
-  url String @unique
-  image String
-  available Boolean
-  categoryId Int
+model Price {
+  id              String    @id @default(uuid())
+  productId       String?
+  date            DateTime  @updatedAt
+  discountPercent String?
+  discountStart   DateTime?
+  discountEnd     DateTime?
+  price           Float
+  pricePer        Float
+  product         Product?  @relation("priceHistory", fields: [productId], references: [id])
+  currentProduct  Product?  @relation("currentPrice")
 }
-
