@@ -11,19 +11,85 @@ import {
     TableRow,
 } from "./ui/table";
 import { Button } from "./ui/button";
-import { FaTimesCircle, FaTrash, FaSearch } from "react-icons/fa";
-import { FaRotate } from "react-icons/fa6";
+import { FaSearch } from "react-icons/fa";
+import GroceryItem from "./GroceryItem";
+import SearchItem from "./SearchItem";
 
+export type Data = {
+    id: string;
+    name: string;
+    categoryId: string;
+    price: number | null;
+    url: string;
+    image: string;
+    pricePer: number | null;
+    unit: string;
+    shop: string;
+    available: boolean;
+};
 const data = sampleData;
+
+type Items = {
+    itemInfo: Data;
+    quantity: number;
+    id: string;
+};
 
 export default function MainGroceryList() {
     const [displayAmount, setDisplayAmount] = useState(10);
     const [total, setTotal] = useState(0);
-    const [items, setItems] = useState<JSX.Element[]>([]);
+    const [items, setItems] = useState<Map<string, Items>>(new Map());
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("");
+    const [currentSearches, setCurrentSearches] = useState<JSX.Element[]>([]);
 
-    const categories = [...new Set(data.map((item) => item.category))];
+    useEffect(() => {
+        let totalAmount = 0;
+        items.forEach((item) => {
+            if (item.itemInfo.price) totalAmount += item.itemInfo.price;
+        });
+        setTotal(totalAmount);
+    }, [items]);
+
+    useEffect(() => {
+        const matchingSearches: Data[] = [];
+        const regex = new RegExp(searchQuery, "i"); // 'i' makes the search case-insensitive
+
+        data.forEach((dataPoint: Data) => {
+            if (matchingSearches.length >= 5) return;
+            if (regex.test(dataPoint.name)) {
+                matchingSearches.push(dataPoint);
+            }
+        });
+        const jsxSearches = matchingSearches.map((item) => (
+            <SearchItem item={item} addItem={addItem} />
+        ));
+        setCurrentSearches(jsxSearches);
+    }, [searchQuery, data]);
+
+    const addItem = (item: Data) => {
+        const newItem = {
+            itemInfo: item,
+            quantity: 1,
+            id: item.id,
+        };
+        setItems((prevMap) => {
+            const newMap = new Map(prevMap);
+            if (newMap.has(item.id)) {
+                // If the item already exists, update its quantity
+                const existingItem = newMap.get(newItem.id);
+                if (existingItem) {
+                    newMap.set(newItem.id, {
+                        ...existingItem,
+                        quantity: existingItem.quantity + newItem.quantity,
+                    });
+                }
+            } else {
+                // If the item does not exist, add it to the Map
+                newMap.set(newItem.id, newItem);
+            }
+            return newMap;
+        });
+    };
 
     const handleUpdate = (id: string) => {
         // Your update logic here
@@ -35,79 +101,20 @@ export default function MainGroceryList() {
         console.log("Delete item with id:", id);
     };
 
-    useEffect(() => {
-        let totalAmount = 0;
-        data.forEach((item) => {
-            if (item.price) totalAmount += item.price;
-        });
-        setTotal(totalAmount);
-    }, []);
-
-    useEffect(() => {
-        const filteredData = data.filter(
-            (item) =>
-                item.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-                (selectedCategory === "" || item.category === selectedCategory)
-        );
-
-        const newItems = filteredData.slice(0, displayAmount).map((item) => (
-            <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="text-center">{item.shop}</TableCell>
-                <TableCell className="text-center">{item.price}</TableCell>
-                <TableCell className="text-center">
-                    <Button
-                        onClick={() => handleUpdate(item.id)}
-                        className="bg-blue-500 h-8 mx-1"
-                    >
-                        <FaRotate />
-                    </Button>
-                    <Button
-                        onClick={() => handleDelete(item.id)}
-                        className="bg-red-500 h-8 mx-1"
-                    >
-                        <FaTrash />
-                    </Button>
-                </TableCell>
-            </TableRow>
-        ));
-        setItems(newItems);
-    }, [displayAmount, searchQuery, selectedCategory]);
-
     return (
         <div className="max-h-screen flex flex-row p-4 bg-gray-100">
             <div className="w-1/4 p-4">
-                <div className="flex items-center mb-4">
-                    <input
-                        type="text"
-                        placeholder="Search for an item..."
-                        className="w-full p-2 border border-gray-300 rounded-lg"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <FaSearch className="ml-2 text-gray-500" />
-                </div>
-                <div className="mb-4">
-                    <h3 className="text-lg font-semibold mb-2">
-                        Filter by Category
-                    </h3>
-                    <div className="flex flex-col">
-                        <button
-                            className={`p-2 mb-2 rounded-lg ${selectedCategory === "" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
-                            onClick={() => setSelectedCategory("")}
-                        >
-                            All Categories
-                        </button>
-                        {categories.map((category) => (
-                            <button
-                                key={category}
-                                className={`p-2 mb-2 rounded-lg ${selectedCategory === category ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
-                                onClick={() => setSelectedCategory(category)}
-                            >
-                                {category}
-                            </button>
-                        ))}
+                <div className="flex flex-col  mb-4">
+                    <div className="flex flex-row items-center">
+                        <input
+                            type="text"
+                            placeholder="Search for an item..."
+                            className="w-full p-2 border border-gray-300 rounded-lg"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
+                    <div className="flex flex-wrap mt-2">{currentSearches}</div>
                 </div>
             </div>
             <div className="w-3/4 p-4">
@@ -120,13 +127,16 @@ export default function MainGroceryList() {
                             <TableHead>Name</TableHead>
                             <TableHead className="text-center">Store</TableHead>
                             <TableHead className="text-center">Price</TableHead>
+                            <TableHead className="text-center">Quantity</TableHead>
                             <TableHead className="text-center">
                                 Actions
                             </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="max-h-64 overflow-y-scroll">
-                        {items}
+                        {Array.from(items.values()).map((item) => (
+                            <GroceryItem item={item.itemInfo} quantity={item.quantity} />
+                        ))}
                     </TableBody>
                     <TableFooter>
                         <TableRow>
