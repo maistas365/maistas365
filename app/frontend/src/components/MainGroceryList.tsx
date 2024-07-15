@@ -103,8 +103,8 @@ export default function MainGroceryList() {
 
     return (
         <div className="max-h-screen flex flex-row p-4 bg-gray-100">
-            <div className="w-1/4 p-4">
-                <div className="flex flex-col  mb-4">
+            <div className="w-72 min-w-72 p-4">
+                <div className="flex flex-col min-w-full  mb-4">
                     <div className="flex flex-row items-center">
                         <input
                             type="text"
@@ -114,10 +114,12 @@ export default function MainGroceryList() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <div className="flex flex-wrap mt-2">{currentSearches}</div>
+                    <div className="flex-col flex  mt-2 w-full">
+                        {currentSearches}
+                    </div>
                 </div>
             </div>
-            <div className="w-3/4 p-4">
+            <div className="w-full p-4">
                 <Table className="bg-white shadow-lg rounded-lg">
                     <TableCaption className="text-lg font-semibold">
                         A list of your current groceries
@@ -127,15 +129,20 @@ export default function MainGroceryList() {
                             <TableHead>Name</TableHead>
                             <TableHead className="text-center">Store</TableHead>
                             <TableHead className="text-center">Price</TableHead>
-                            <TableHead className="text-center">Quantity</TableHead>
+                            <TableHead className="text-center">
+                                Quantity
+                            </TableHead>
                             <TableHead className="text-center">
                                 Actions
                             </TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody className="max-h-64 overflow-y-scroll">
+                    <TableBody>
                         {Array.from(items.values()).map((item) => (
-                            <GroceryItem item={item.itemInfo} quantity={item.quantity} />
+                            <GroceryItem
+                                item={item.itemInfo}
+                                quantity={item.quantity}
+                            />
                         ))}
                     </TableBody>
                     <TableFooter>

@@ -13,7 +13,7 @@ type GrocerItemProps = {
 export default function GroceryItem({item, quantity}: GrocerItemProps) {
     return (
         <TableRow key={item.id}>
-            <TableCell className="font-medium">{item.name}</TableCell>
+            <TableCell className="font-medium max-w-32">{item.name}</TableCell>
             <TableCell className="text-center">{item.shop}</TableCell>
             <TableCell className="text-center">{item.price}</TableCell>
             <TableCell className="text-center">{quantity}</TableCell>
