@@ -44,6 +44,7 @@ export default function MainGroceryList() {
 
     useEffect(() => {
         let totalAmount = 0;
+        console.log("items", items)
         items.forEach((item) => {
             if (item.itemInfo.price) totalAmount += item.itemInfo.price;
         });
@@ -64,7 +65,7 @@ export default function MainGroceryList() {
             <SearchItem item={item} addItem={addItem} />
         ));
         setCurrentSearches(jsxSearches);
-    }, [searchQuery, data]);
+    }, [searchQuery]);
 
     const addItem = (item: Data) => {
         const newItem = {
@@ -97,8 +98,11 @@ export default function MainGroceryList() {
     };
 
     const handleDelete = (id: string) => {
-        // Your delete logic here
-        console.log("Delete item with id:", id);
+        setItems((oldItems) => {
+            const newItems = new Map(oldItems)
+            newItems.delete(id);
+            return newItems
+        })
     };
 
     return (
@@ -142,6 +146,7 @@ export default function MainGroceryList() {
                             <GroceryItem
                                 item={item.itemInfo}
                                 quantity={item.quantity}
+                                handleDelete={handleDelete}
                             />
                         ))}
                     </TableBody>

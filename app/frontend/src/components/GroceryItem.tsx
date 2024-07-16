@@ -4,13 +4,13 @@ import { Button } from "./ui/button";
 import { TableCell, TableRow } from "./ui/table";
 import { FaTrash } from "react-icons/fa";
 
-
 type GrocerItemProps = {
     item: Data;
-    quantity: number
+    quantity: number;
+    handleDelete: (id: string) => void;
 };
 
-export default function GroceryItem({item, quantity}: GrocerItemProps) {
+export default function GroceryItem({ item, quantity, handleDelete }: GrocerItemProps) {
     return (
         <TableRow key={item.id}>
             <TableCell className="font-medium max-w-32">{item.name}</TableCell>
@@ -21,7 +21,7 @@ export default function GroceryItem({item, quantity}: GrocerItemProps) {
                 <Button className="bg-blue-500 h-8 mx-1">
                     <FaRotate />
                 </Button>
-                <Button className="bg-red-500 h-8 mx-1">
+                <Button className="bg-red-500 h-8 mx-1" onClick={() => handleDelete(item.id)}>
                     <FaTrash />
                 </Button>
             </TableCell>
