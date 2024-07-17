@@ -22,11 +22,11 @@ model Product {
   priceId       String?  @unique
   price         Price?   @relation("currentPrice", fields: [priceId], references: [id])
   quantity      Float?
-  unit          String
+  unit          String?
   shopName      String
   url           String?  @unique
   image         String?
-  available     Boolean
+  available     Boolean?
   categoryId    String?
   priceHistory  Price[]  @relation("priceHistory")
 
@@ -39,8 +39,8 @@ model Price {
   product         Product?  @relation("priceHistory", fields: [productId], references: [id])
   currentProduct  Product?  @relation("currentPrice")
   date            DateTime  @updatedAt
-  price           Float
-  pricePer        Float
+  price           Float?
+  pricePer        Float?
   discountPercent String?
   discountStart   DateTime?
   discountEnd     DateTime?
