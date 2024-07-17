@@ -1,80 +1,218 @@
-import { createClient } from "@supabase/supabase-js";
-import fs from "fs/promises"; // Use fs/promises for async file operations
-import * as dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { PrismaClient, Product, Price } from '@prisma/client';
 
-dotenv.config();
+const prisma = new PrismaClient();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-   
-const supabase = createClient(supabaseUrl, supabaseKey);
+const dir: string = 'normalized'; //path of the normalized files folder
+const errLog: string = 'error_log.txt';
+const writeStream = fs.createWriteStream(errLog, { flags: 'a' });
 
-const filePaths = ["../normalizedIki.json", "../normalizedRimi.json", "../normalizedMaxima.json"]; // Replace with your actual file paths
-const BATCH_SIZE = 100;
+interface NormalizedProduct {
+  id: string;
+  name: string;
+  categoryId: string;
+  price: number | null;
+  url: string | null;
+  image: string | null;
+  pricePer: number | null;
+  unit: string | null;
+  shop: string;
+  available: boolean;
+}
 
-async function readFiles() {
-    try {
-        const filePromises = filePaths.map((path) => fs.readFile(path, "utf-8"));
-        const fileContents = await Promise.all(filePromises);
-        return fileContents.map((content) => JSON.parse(content));
-    } catch (error) {
-        console.error("Error reading files:", error);
+async function insertRow(data: NormalizedProduct[]): Promise<void> {
+  try {
+    const productsToCreate: any[] = [];
+    const pricesToCreate: any[] = [];
+    const productMap = new Map<string, string>();
+
+    console.log(`Processing batch of ${data.length} items`);
+
+    for (const item of data) {
+      let existingProduct: Product | null;
+      try {
+        existingProduct = await prisma.product.findUnique({
+          where: {
+            shopName_productShopId: {
+              shopName: item.shop,
+              productShopId: item.id,
+            },
+          },
+        });
+      } catch (err) {
+        console.log('Error in finding existing product', err);
+        writeStream.write(`Error finding unique product: ${err}`);
+        throw err;
+      }
+
+      if (existingProduct) {
+        productMap.set(`${item.id}_${item.shop}`, existingProduct.id);
+      } else {
+        let quantity: number | null = null;
+        if (item.price !== null && item.pricePer !== null)
+          quantity = item.price / item.pricePer;
+
+        const newProduct = {
+          productShopId: item.id,
+          name: item.name,
+          quantity: quantity,
+          unit: item.unit,
+          shopName: item.shop,
+          url: item.url,
+          image: item.image,
+          available: item.available,
+          categoryId: item.categoryId,
+        };
+        productsToCreate.push(newProduct);
+      }
+    }
+
+    let createdProducts: Product[] = [];
+    if (productsToCreate.length > 0) {
+      try {
+        createdProducts = await prisma.product.createManyAndReturn({
+          data: productsToCreate,
+          skipDuplicates: true,
+        });
+
+        for (const createdProduct of createdProducts) {
+          productMap.set(
+            `${createdProduct.productShopId}_${createdProduct.shopName}`,
+            createdProduct.id,
+          );
+        }
+      } catch (err) {
+        writeStream.write('Failed to create many products: ' + err);
+      }
+    }
+
+    for (const item of data) {
+      const productId = productMap.get(`${item.id}_${item.shop}`);
+      if (productId) {
+        const newPrice = {
+          productId: productId,
+          price: item.price,
+          pricePer: item.pricePer,
+          discountPercent: null,
+          discountStart: null,
+          discountEnd: null,
+          date: new Date(),
+        };
+        pricesToCreate.push(newPrice);
+      }
+    }
+
+    let createdPrices: Price[] = [];
+    if (pricesToCreate.length > 0) {
+      try {
+        createdPrices = await prisma.price.createManyAndReturn({
+          data: pricesToCreate,
+          skipDuplicates: true,
+        });
+      } catch (err) {
+        writeStream.write('Failed to create many prices: ' + err);
+      }
+
+      try {
+        if (createdPrices) {
+          for (const price of createdPrices) {
+            if (price.productId) {
+              await prisma.product.update({
+                where: {
+                  id: price.productId,
+                },
+                data: {
+                  priceId: price.id,
+                },
+                include: {
+                  priceHistory: true,
+                },
+              });
+            }
+          }
+        }
+      } catch (error) {
+        writeStream.write('Error updating product:' + error);
         throw error;
+      }
     }
+
+    console.log('Inserted batch');
+  } catch (err) {
+    writeStream.write('Whole error: ' + err);
+  }
 }
 
-async function insertRow(row: any) {
-    try {
-        const { data: insertedData, error } = await supabase
-            .from("mainProducts") // Replace with your actual table name
-            .insert([row]);
+async function getObjFromJson() {
+  const BATCH_SIZE = 100;
 
-        if (error) {
-            console.error("Error inserting row:", error);
-        } else {
-            console.log(`Row inserted successfully: ${JSON.stringify(insertedData)}`);
-        }
-    } catch (error) {
-        console.error("Error inserting row:", error);
+  fs.readdir(dir, (err, files) => {
+    if (err) {
+      return writeStream.write('Error reading directory' + err);
     }
-}
 
-async function insertDataInBatches(data: any) {
-    for (let i = 0; i < data.length; i += BATCH_SIZE) {
-        const batch = data.slice(i, i + BATCH_SIZE);
-        try {
-            const { data: insertedData, error }: any = await supabase.from("mainProducts").insert(batch);
+    const normalizedFiles = files.filter((file) =>
+      file.startsWith('normalized'),
+    );
+    let allData: NormalizedProduct[] = [];
 
-            if (error) {
-                console.error("Batch insert error:", error);
+    const filePromises = normalizedFiles.map((filePath) => {
+      const fullPath = path.join(dir, filePath);
 
-                // Retry individual rows in the batch
-                for (const row of batch) {
-                    await insertRow(row);
-                }
-            } else {
-                console.log(`Batch inserted successfully: ${insertedData.length} records`);
+      return new Promise<void>((resolve, reject) => {
+        fs.readFile(fullPath, 'utf8', async (err, json) => {
+          if (err) {
+            writeStream.write('Error reading file' + err);
+            return reject(err);
+          }
+
+          try {
+            const data: Record<string, any> = JSON.parse(json);
+
+            for (const key of Object.keys(data)) {
+              allData.push(data[key]);
+              if (allData.length >= BATCH_SIZE) {
+                console.log(`Batch size reached: ${BATCH_SIZE}`);
+
+                await insertRow(allData.slice(0, BATCH_SIZE)).catch((err) => {
+                  writeStream.write('error getting into function:' + err);
+                });
+                allData = [];
+              }
             }
-        } catch (error) {
-            console.error("Error inserting batch:", error);
+            if (allData.length > 0) {
+              console.log(`Remaining items to process: ${allData.length}`);
 
-            // Retry individual rows in the batch
-            for (const row of batch) {
-                await insertRow(row);
+              await insertRow(allData).catch((err) => {
+                writeStream.write('error getting into function:' + err);
+              });
             }
-        }
-    }
+            resolve();
+          } catch (err) {
+            writeStream.write('Error parsing JSON' + err);
+            reject(err);
+          }
+        });
+      });
+    });
+
+    Promise.all(filePromises)
+      .then(() => {
+        console.log('All files processed successfully.');
+        writeStream.close();
+      })
+      .catch((err) => {
+        console.error('Error processing files' + err);
+      });
+  });
 }
 
-async function main() {
-    try {
-        const fileData = await readFiles();
-        const flattenedData = fileData.flat();
+getObjFromJson();
 
-        await insertDataInBatches(flattenedData);
-    } catch (error) {
-        console.error("Error in main function:", error);
-    }
+async function clearAll() {
+  await prisma.price.deleteMany();
+  await prisma.product.deleteMany();
 }
 
-main();
+// clearAll();
